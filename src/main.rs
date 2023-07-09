@@ -1,6 +1,6 @@
 use std::env;
 use std::fs::File;
-use std::io::{self, Read, Write};
+use std::io::{self, Read, Write, BufWriter};
 
 fn main() {
     // Commandline argument
@@ -12,10 +12,10 @@ fn main() {
     let mut contents = String::new();
     fp.read_to_string(&mut contents)
         .expect("something went wrong reading the file!");
-    exec_bf(contents);
+    exec_bf(contents, None);
 }
 
-fn exec_bf(bfsrc: String) {
+fn exec_bf(bfsrc: String, mut bufstream: Option<BufWriter<&mut Vec<u8>>>) -> [u8; 30000] {
     let mut mem: [u8; 30000] = [0; 30000];
     let mut mem_idx: usize = 0;
     let mut src_idx: usize = 0;
@@ -42,6 +42,9 @@ fn exec_bf(bfsrc: String) {
             }
             '.' => {
                 stdout.write(&[mem[mem_idx] as u8]).expect("error");
+                if !bufstream.is_none() {
+                    let _ = bufstream.as_mut().unwrap().write(&[mem[mem_idx] as u8]);
+                }
                 ()
             },
             ',' => {
@@ -84,4 +87,14 @@ fn exec_bf(bfsrc: String) {
         }
         src_idx += 1;
     }
+    mem
+}
+
+#[test]
+fn abc_test() {
+    let mut output = Vec::<u8>::new();
+    exec_bf("++++[>++++[>++++<-]<-]>>+.+.+.".to_string(), Some(BufWriter::new(&mut output)));
+    assert_eq!(output[0], b'A');
+    assert_eq!(output[1], b'B');
+    assert_eq!(output[2], b'C');
 }
